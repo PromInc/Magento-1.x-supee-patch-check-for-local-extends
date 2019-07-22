@@ -10,7 +10,9 @@ SCRIPT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/"`basename "$0"`
 
 ## get patchfile
 if [ -z "$1" ]; then
-        echo "Please provide a path to the SUPEE patch file"
+        echo "Arguments:"
+        echo "  path to Magento supplied SUPEE patch file"
+        echo "  server/vhost ID (optional) eg: test4"
         exit
 else
         PATCHFILE="$1"
@@ -47,10 +49,10 @@ for FILE in ${FILES_CHANGED}; do
         EXT="${FILE##*.}"
 
         if [ ${EXT} = "php" ]; then
-                if [ -f ${FILE} ]; then
-                        CLASS=`grep '^class' $FILE | awk '{ print $2; }'`
+                if [ -f ${MAGE_PATH}${FILE} ]; then
+                        CLASS=`grep '^class' ${MAGE_PATH}${FILE} | awk '{ print $2; }'`
                         if [ -z "${CLASS}" ]; then
-                                CLASS=`grep '^abstract class' $FILE | awk '{ print $3; }'`
+                                CLASS=`grep '^abstract class' ${MAGE_PATH}${FILE} | awk '{ print $3; }'`
                         fi
                         if [ -z "${CLASS}" ]; then
                                 echo "  WARNING: manual check required for file: " ${FILE}
@@ -72,9 +74,9 @@ for FILE in ${FILES_CHANGED}; do
         elif [ ${EXT} = "phtml" ]; then
                 FILENAME=`basename ${FILE}`
                 LOC_FULL=${MAGE_PATH}`echo ${FILE} | awk -F/ '{ print $1"/"$2"/"$3; }'`"/"
-                LOC_PATH=`echo "${FILE}" | awk -F/ 'BEGIN{OFS="/";} { $1=$2=$3=$4=$5=""; gsub("//+"," ") }1' | sed "s/${FILENAME}//g"`
+                LOC_PATH=`echo "${FILE}" | awk -F/ 'BEGIN{OFS="/";} { $1=$2=$3=$4=$5=""; gsub("//+"," ") }1' | sed "s/${FILENAME}//g" | sed "s/^[ \t]*//;s/[ \t]*$//"`
 
-                MATCHED_FILES=`find ${LOC_FULL} -name "${FILENAME}" | grep ${LOC_PATH}`
+                MATCHED_FILES=`find ${LOC_FULL} -name "${FILENAME}" | grep ${LOC_PATH} | grep -v "app/design/adminhtml/default/default/${LOC_PATH}\|app/design/frontend/base/default/${LOC_PATH}"`
                 if [ ${#MATCHED_FILES} -gt 0 ]; then
                         PATCHED_LOCAL_EXTEND=$((PATCHED_LOCAL_EXTEND+1))
                         PATCHED_LOCAL_EXTEND_FILES=`echo -e "${PATCHED_LOCAL_EXTEND_FILES}"'\n'  ${FILE}`
